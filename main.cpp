@@ -38,8 +38,10 @@ int main ()
 
   std::cout << "job added: " << added << std::endl;
   std::cout << "job count: " << JobQueue_CountJobs(jobQueue) << std::endl;
-  std::cout << "adding 11.0 to time" << std::endl;
-  JobQueue_Update(jobQueue, 11.0);
+  std::cout << "adding 5.0 to time" << std::endl;
+  JobQueue_Update(jobQueue, 5.0);
+  std::cout << "adding 6.0 to time" << std::endl;
+  JobQueue_Update(jobQueue, 6.0);
   std::cout << "job count: " << JobQueue_CountJobs(jobQueue) << std::endl;
 
   return 0;
@@ -76,14 +78,12 @@ JobQueue JobQueue_Init(size_t maxJobs)
 
 bool JobQueue_AddJob(JobQueue& jobQueue, uint64 offsetMs, Callback callback)
 {
-  Job *job = static_cast<Job*>(MallocZero(sizeof(Job)));
-
-  job->whenMs = static_cast<uint64>(std::floor(jobQueue.currentTimeMs)) + offsetMs;
-  job->callback = callback;
-
   bool added = false;
   for (size_t i = 0; i < jobQueue.maxJobs; i++) {
     if (jobQueue.jobs[i] == nullptr) {
+      Job *job = static_cast<Job*>(MallocZero(sizeof(Job)));
+      job->whenMs = static_cast<uint64>(std::floor(jobQueue.currentTimeMs)) + offsetMs;
+      job->callback = callback;
       jobQueue.jobs[i] = job;
       added = true;
       break;
