@@ -7,15 +7,12 @@
 #include <functional>
 #include <stdlib.h>
 #include <stdio.h>
-#include <cmath>
 
-
-typedef unsigned long long uint64;
 typedef std::function<void()> Callback;
 
 struct Job
 {
-  uint64 whenMs;
+  double whenMs;
   Callback callback;
 };
 
@@ -29,7 +26,7 @@ struct JobQueue
 void* MallocZero(size_t size);
 
 JobQueue JobQueue_Init(size_t maxJobs);
-bool JobQueue_AddJob(JobQueue& jobQueue, uint64 offsetMs, Callback callback);
+bool JobQueue_AddJob(JobQueue& jobQueue, double offsetMs, Callback callback);
 size_t JobQueue_CountJobs(const JobQueue& jobQueue);
 void JobQueue_Update(JobQueue& jobQueue, float _timeSinceLastUpdateMs);
 
@@ -37,11 +34,18 @@ int main ()
 {
   JobQueue jobQueue = JobQueue_Init(10);
 
-  bool added = JobQueue_AddJob(jobQueue, 10, []() {
-      std::cout << "testing!" << std::endl;
-    });
+  bool added = false;
+  added = JobQueue_AddJob(jobQueue, 10, []()
+                          {
+                            std::cout << "added first, runs second" << std::endl;
+                          });
+  std::cout << "job added: " << (added ? "true" : "false") << std::endl;
+  added = JobQueue_AddJob(jobQueue, 5, []()
+                          {
+                            std::cout << "added second, runs first" << std::endl;
+                          });
+  std::cout << "job added: " << (added ? "true" : "false") << std::endl;
 
-  std::cout << "job added: " << added << std::endl;
   std::cout << "job count: " << JobQueue_CountJobs(jobQueue) << std::endl;
   std::cout << "adding 5.0 to time" << std::endl;
   JobQueue_Update(jobQueue, 5.0);
@@ -71,7 +75,7 @@ JobQueue JobQueue_Init(size_t maxJobs)
   size_t jobMemorySize = maxJobs * sizeof(Job*);
   JobQueue jq;
   // Default everything to 0/nullptr. This way if I add a member it gets initialized.
-  memset(&jq, 0, sizeof(JobQueue));
+  memset(&jq, 0, sizeof(jq));
 
   jq.maxJobs = maxJobs;
   // Allocate the buffer for jobs and 0 it out so we get nullptr if we access an
@@ -81,20 +85,19 @@ JobQueue JobQueue_Init(size_t maxJobs)
   return jq;
 }
 
-bool JobQueue_AddJob(JobQueue& jobQueue, uint64 offsetMs, Callback callback)
+bool JobQueue_AddJob(JobQueue& jobQueue, double offsetMs, Callback callback)
 {
   bool added = false;
   for (size_t i = 0; i < jobQueue.maxJobs; i++) {
     if (jobQueue.jobs[i] == nullptr) {
       Job *job = static_cast<Job*>(MallocZero(sizeof(Job)));
-      job->whenMs = static_cast<uint64>(std::floor(jobQueue.currentTimeMs)) + offsetMs;
+      job->whenMs = jobQueue.currentTimeMs + offsetMs;
       job->callback = callback;
       jobQueue.jobs[i] = job;
       added = true;
       break;
     }
   }
-
   return added;
 }
 
@@ -121,7 +124,7 @@ void JobQueue_Update(JobQueue& jobQueue, float _timeSinceLastUpdateMs)
       continue;
     }
 
-    if (job->whenMs < jobQueue.currentTimeMs) {
+    if (job->whenMs <= jobQueue.currentTimeMs) {
       // free up the space in the queue before calling in case we add more to
       // the queue in the callback. This means we could have n + 1 jobs in
       // existance but only n jobs in the queue.
