@@ -9,8 +9,9 @@ messy, the word prototype is used in the title of this readme for a reason, etc.
 
 My `Makefile` is specifically for `clang` because I was being pretty lazy.
 Theoretically any C++11 compiler could compile this, and most of my switches are
-just to generate warnings to help me catch errors. If you run `make` after
-checking this out on a machine with `clang` installed, it will compile and run.
+just to generate warnings to help me catch errors. Symlink an implementation
+into `main.cpp` such as `ln -s array-swap.cpp main.cpp` then run `make` and it
+will build and run that implementation.
 
 ## License
 
